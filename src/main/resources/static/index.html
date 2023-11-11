@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loja de Roupas</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 50px;
+            background-color: #fffdd0; 
+        }
+
+        h2 {
+            text-align: center;
+            font-size: 2em; 
+            margin-bottom: 20px; 
+        }
+
+        form,
+        button {
+            margin-bottom: 20px;
+            background-color: #ffd700; 
+            color: black; 
+            padding: 10px; 
+            border: none; 
+            cursor: pointer; 
+            border-radius: 5px; 
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        label {
+            margin-bottom: 8px;
+        }
+
+        input {
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+
+        table {
+            width: 80%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>Gerenciamento de Estoque por Pedro Giusepe - Loja de Roupas</h2>
+
+    <form onsubmit="cadastrarRoupa(); return false;">
+        <label for="nome">Nome:</label>
+        <input type="text" id="nome" required />
+
+        <label for="tamanho">Tamanho:</label>
+        <input type="text" id="tamanho" required />
+
+        <label for="quantidadeEmEstoque">Quantidade em Estoque:</label>
+        <input type="number" id="quantidadeEmEstoque" required />
+
+        <label for="preco">Preço:</label>
+        <input type="text" id="preco" pattern="[0-9]+([,\.][0-9]+)?" title="Use ponto (.) ou vírgula (,) para casas decimais" required />
+
+        <button type="submit">Cadastrar Roupa</button>
+    </form>
+
+    <table id="tabelaRoupas">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Tamanho</th>
+                <th>Quantidade em Estoque</th>
+                <th>Preço</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <script>
+        function cadastrarRoupa() {
+            const nome = document.getElementById("nome").value;
+            const tamanho = document.getElementById("tamanho").value;
+            const quantidadeEmEstoque = document.getElementById("quantidadeEmEstoque").value;
+            const preco = parseFloat(document.getElementById("preco").value.replace(",", "."));
+
+            fetch("/api/roupas", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        nome,
+                        tamanho,
+                        quantidadeEmEstoque,
+                        preco
+                    })
+                })
+                .then(response => response.json())
+                .then(() => {
+                    listarRoupas();
+                });
+        }
+
+        function listarRoupas() {
+            const tabela = document.getElementById("tabelaRoupas").getElementsByTagName('tbody')[0];
+            tabela.innerHTML = "";
+
+            fetch("/api/roupas")
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(roupa => {
+                        const newRow = tabela.insertRow();
+                        newRow.innerHTML = `<td>${roupa.nome}</td><td>${roupa.tamanho}</td><td>${roupa.quantidadeEmEstoque}</td><td>${roupa.preco}</td><td><button onclick="removerRoupa('${roupa.nome}')">Remover</button></td>`;
+                    });
+                });
+        }
+
+        function removerRoupa(nome) {
+            fetch(`/api/roupas?nome=${encodeURIComponent(nome)}`, {
+                    method: 'DELETE'
+                })
+                .then(() => {
+                    listarRoupas();
+                });
+        }
+
+        listarRoupas();
+    </script>
+
+</body>
+
+</html>
+
+
+
