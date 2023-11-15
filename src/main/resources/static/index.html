@@ -12,24 +12,24 @@
             flex-direction: column;
             align-items: center;
             margin-top: 50px;
-            background-color: #fffdd0; 
+            background-color: #fffdd0;
         }
 
         h2 {
             text-align: center;
-            font-size: 2em; 
-            margin-bottom: 20px; 
+            font-size: 2em;
+            margin-bottom: 20px;
         }
 
         form,
         button {
             margin-bottom: 20px;
-            background-color: #ffd700; 
-            color: black; 
-            padding: 10px; 
-            border: none; 
-            cursor: pointer; 
-            border-radius: 5px; 
+            background-color: #ffd700;
+            color: black;
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
         }
 
         form {
@@ -59,6 +59,12 @@
             padding: 8px;
             text-align: center;
         }
+
+        .edit-text {
+            margin-top: 20px;
+            color: #666;
+            font-style: italic;
+        }
     </style>
 </head>
 
@@ -79,8 +85,13 @@
         <label for="preco">Preço:</label>
         <input type="text" id="preco" pattern="[0-9]+([,\.][0-9]+)?" title="Use ponto (.) ou vírgula (,) para casas decimais" required />
 
+        <label for="imagemUpload">Imagem:</label>
+        <input type="file" id="imagemUpload" accept="image/*" required />
+
         <button type="submit">Cadastrar Roupa</button>
     </form>
+
+    <p class="edit-text">Clique para editar os valores de preço e quantidade no estoque.</p>
 
     <table id="tabelaRoupas">
         <thead>
@@ -89,67 +100,84 @@
                 <th>Tamanho</th>
                 <th>Quantidade em Estoque</th>
                 <th>Preço</th>
+                <th>Imagem</th>
                 <th>Ações</th>
             </tr>
         </thead>
         <tbody>
+            
         </tbody>
     </table>
 
     <script>
-        function cadastrarRoupa() {
-            const nome = document.getElementById("nome").value;
-            const tamanho = document.getElementById("tamanho").value;
-            const quantidadeEmEstoque = document.getElementById("quantidadeEmEstoque").value;
-            const preco = parseFloat(document.getElementById("preco").value.replace(",", "."));
+       let roupas = []; 
 
-            fetch("/api/roupas", {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        nome,
-                        tamanho,
-                        quantidadeEmEstoque,
-                        preco
-                    })
-                })
-                .then(response => response.json())
-                .then(() => {
-                    listarRoupas();
-                });
-        }
+function renderizarTabela() {
+    const tabela = document.getElementById("tabelaRoupas").getElementsByTagName('tbody')[0];
+    tabela.innerHTML = "";
 
-        function listarRoupas() {
-            const tabela = document.getElementById("tabelaRoupas").getElementsByTagName('tbody')[0];
-            tabela.innerHTML = "";
+    roupas.forEach((roupa, index) => {
+        const newRow = tabela.insertRow();
+        newRow.innerHTML = `<td>${roupa.nome}</td><td>${roupa.tamanho}</td><td><span id="quantidade-${index}" onclick="editarQuantidade(${index})">${roupa.quantidadeEmEstoque}</span></td><td><span id="preco-${index}" onclick="editarPreco(${index})">${roupa.preco}</span></td><td><img src="${roupa.imagemURL}" alt="Imagem da roupa" style="max-width: 100px; max-height: 100px;"></td><td><button onclick="removerRoupa(${index})">Remover</button></td>`;
+    });
+}
 
-            fetch("/api/roupas")
-                .then(response => response.json())
-                .then(data => {
-                    data.forEach(roupa => {
-                        const newRow = tabela.insertRow();
-                        newRow.innerHTML = `<td>${roupa.nome}</td><td>${roupa.tamanho}</td><td>${roupa.quantidadeEmEstoque}</td><td>${roupa.preco}</td><td><button onclick="removerRoupa('${roupa.nome}')">Remover</button></td>`;
-                    });
-                });
-        }
+function cadastrarRoupa() {
+    const nome = document.getElementById("nome").value;
+    const tamanho = document.getElementById("tamanho").value;
+    const quantidadeEmEstoque = document.getElementById("quantidadeEmEstoque").value;
+    const preco = parseFloat(document.getElementById("preco").value.replace(",", "."));
+    const fileInput = document.getElementById("imagemUpload");
+    const imagemUpload = fileInput.files[0]; 
 
-        function removerRoupa(nome) {
-            fetch(`/api/roupas?nome=${encodeURIComponent(nome)}`, {
-                    method: 'DELETE'
-                })
-                .then(() => {
-                    listarRoupas();
-                });
-        }
+    const novaRoupa = {
+        nome,
+        tamanho,
+        quantidadeEmEstoque,
+        preco,
+        imagemURL: URL.createObjectURL(imagemUpload)
+    };
 
-        listarRoupas();
+    roupas.push(novaRoupa);
+    renderizarTabela();
+
+    document.getElementById("nome").value = "";
+    document.getElementById("tamanho").value = "";
+    document.getElementById("quantidadeEmEstoque").value = "";
+    document.getElementById("preco").value = "";
+    document.getElementById("imagemUpload").value = "";
+}
+
+function editarQuantidade(index) {
+    const novaQuantidade = prompt("Digite a nova quantidade em estoque:");
+    if (novaQuantidade !== null && !isNaN(novaQuantidade) && novaQuantidade !== "") {
+        roupas[index].quantidadeEmEstoque = parseInt(novaQuantidade);
+        document.getElementById(`quantidade-${index}`).textContent = novaQuantidade;
+    } else {
+        alert("Valor inválido ou não inserido. Tente novamente.");
+    }
+}
+
+function editarPreco(index) {
+    const novoPreco = prompt("Digite o novo preço:");
+    if (novoPreco !== null && !isNaN(novoPreco) && novoPreco !== "") {
+        roupas[index].preco = parseFloat(novoPreco);
+        document.getElementById(`preco-${index}`).textContent = novoPreco;
+    } else {
+        alert("Valor inválido ou não inserido. Tente novamente.");
+    }
+}
+
+function removerRoupa(index) {
+    roupas.splice(index, 1);
+    renderizarTabela();
+}
+
+renderizarTabela();
     </script>
 
 </body>
 
 </html>
-
 
 
